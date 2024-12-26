@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Library Management System</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Library Management System</h1>
+        <div class="form-container">
+            <input type="text" id="title" placeholder="Book Title">
+            <input type="text" id="author" placeholder="Author Name">
+            <button onclick="addBook()">Add Book</button>
+            <button onclick="deleteBook()">Delete Book</button>
+        </div>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search Book by Title">
+            <button onclick="searchBook()">Search</button>
+            <button onclick="viewAllBooks()">View All Books</button>
+        </div>
+        <div class="book-list">
+            <h2>Books in Library</h2>
+            <ul id="books"></ul>
+        </div>
+    </div>
+    <script>
+        async function addBook() {
+            const title = document.getElementById('title').value;
+            const author = document.getElementById('author').value;
+            if (!title || !author) {
+                alert("Please fill both title and author fields.");
+                return;
+            }
+            const response = await fetch("/add_book", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, author })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            viewAllBooks();
+        }
+
+        async function deleteBook() {
+            const title = document.getElementById('title').value;
+            if (!title) {
+                alert("Please enter the title of the book to delete.");
+                return;
+            }
+            const response = await fetch("/delete_book", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            viewAllBooks();
+        }
+
+        async function viewAllBooks() {
+            const response = await fetch("/books");
+            const books = await response.json();
+            const booksList = document.getElementById('books');
+            booksList.innerHTML = "";
+            books.forEach(book => {
+                const li = document.createElement('li');
+                li.textContent = `${book.Title} by ${book.Author}`;
+                booksList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
