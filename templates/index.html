@@ -8,10 +8,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>Library Management System</h1>
+        <h1>📚 Library Management System</h1>
         <div class="form-container">
-            <input type="text" id="title" placeholder="Book Title">
-            <input type="text" id="author" placeholder="Author Name">
+            <input type="text" id="title" placeholder="Enter Book Title">
+            <input type="text" id="author" placeholder="Enter Author Name">
             <button onclick="addBook()">Add Book</button>
             <button onclick="deleteBook()">Delete Book</button>
         </div>
@@ -21,8 +21,10 @@
             <button onclick="viewAllBooks()">View All Books</button>
         </div>
         <div class="book-list">
-            <h2>Books in Library</h2>
-            <ul id="books"></ul>
+            <h2>📖 Books in Library</h2>
+            <ul id="books">
+                <!-- Books will be dynamically added here -->
+            </ul>
         </div>
     </div>
     <script>
@@ -70,6 +72,31 @@
                 booksList.appendChild(li);
             });
         }
+
+        async function searchBook() {
+            const search = document.getElementById('search').value.toLowerCase();
+            if (!search) {
+                alert("Please enter a book title to search.");
+                return;
+            }
+            const response = await fetch("/books");
+            const books = await response.json();
+            const booksList = document.getElementById('books');
+            booksList.innerHTML = "";
+            const filteredBooks = books.filter(book => book.Title.toLowerCase().includes(search));
+            if (filteredBooks.length === 0) {
+                alert("No books found matching your search.");
+            } else {
+                filteredBooks.forEach(book => {
+                    const li = document.createElement('li');
+                    li.textContent = `${book.Title} by ${book.Author}`;
+                    booksList.appendChild(li);
+                });
+            }
+        }
+
+        // Load all books when the page is loaded
+        window.onload = viewAllBooks;
     </script>
 </body>
 </html>
