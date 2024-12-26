@@ -12,13 +12,18 @@
         <div class="form-container">
             <input type="text" id="title" placeholder="Enter Book Title">
             <input type="text" id="author" placeholder="Enter Author Name">
+            <input type="text" id="description" placeholder="Enter Book Description (Optional)">
             <button onclick="addBook()">Add Book</button>
             <button onclick="deleteBook()">Delete Book</button>
+            <button onclick="editBook()">Edit Book</button>
+            <button onclick="clearFields()">Clear Fields</button>
         </div>
         <div class="search-container">
             <input type="text" id="search" placeholder="Search Book by Title">
             <button onclick="searchBook()">Search</button>
             <button onclick="viewAllBooks()">View All Books</button>
+            <button onclick="sortBooks('title')">Sort by Title</button>
+            <button onclick="sortBooks('author')">Sort by Author</button>
         </div>
         <div class="book-list">
             <h2>📖 Books in Library</h2>
@@ -31,14 +36,17 @@
         async function addBook() {
             const title = document.getElementById('title').value;
             const author = document.getElementById('author').value;
+            const description = document.getElementById('description').value;
+
             if (!title || !author) {
                 alert("Please fill both title and author fields.");
                 return;
             }
+
             const response = await fetch("/add_book", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, author })
+                body: JSON.stringify({ title, author, description })
             });
             const result = await response.json();
             alert(result.message || result.error);
@@ -51,10 +59,31 @@
                 alert("Please enter the title of the book to delete.");
                 return;
             }
+
             const response = await fetch("/delete_book", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title })
+            });
+            const result = await response.json();
+            alert(result.message || result.error);
+            viewAllBooks();
+        }
+
+        async function editBook() {
+            const title = document.getElementById('title').value;
+            const newAuthor = document.getElementById('author').value;
+            const newDescription = document.getElementById('description').value;
+
+            if (!title || (!newAuthor && !newDescription)) {
+                alert("Please enter the title and at least one new detail to update.");
+                return;
+            }
+
+            const response = await fetch("/edit_book", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, newAuthor, newDescription })
             });
             const result = await response.json();
             alert(result.message || result.error);
@@ -68,7 +97,7 @@
             booksList.innerHTML = "";
             books.forEach(book => {
                 const li = document.createElement('li');
-                li.textContent = `${book.Title} by ${book.Author}`;
+                li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
                 booksList.appendChild(li);
             });
         }
@@ -79,6 +108,7 @@
                 alert("Please enter a book title to search.");
                 return;
             }
+
             const response = await fetch("/books");
             const books = await response.json();
             const booksList = document.getElementById('books');
@@ -89,13 +119,38 @@
             } else {
                 filteredBooks.forEach(book => {
                     const li = document.createElement('li');
-                    li.textContent = `${book.Title} by ${book.Author}`;
+                    li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
                     booksList.appendChild(li);
                 });
             }
         }
 
-        // Load all books when the page is loaded
+        async function sortBooks(criteria) {
+            const response = await fetch("/books");
+            const books = await response.json();
+            const booksList = document.getElementById('books');
+            booksList.innerHTML = "";
+
+            const sortedBooks = books.sort((a, b) =>
+                criteria === "title"
+                    ? a.Title.localeCompare(b.Title)
+                    : a.Author.localeCompare(b.Author)
+            );
+
+            sortedBooks.forEach(book => {
+                const li = document.createElement('li');
+                li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
+                booksList.appendChild(li);
+            });
+        }
+
+        function clearFields() {
+            document.getElementById('title').value = "";
+            document.getElementById('author').value = "";
+            document.getElementById('description').value = "";
+            document.getElementById('search').value = "";
+        }
+
         window.onload = viewAllBooks;
     </script>
 </body>
