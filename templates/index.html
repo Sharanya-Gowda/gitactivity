@@ -9,58 +9,77 @@
 <body>
     <div class="container">
         <h1>📚 Library Management System</h1>
+        
         <div class="form-container">
             <input type="text" id="title" placeholder="Enter Book Title">
             <input type="text" id="author" placeholder="Enter Author Name">
             <input type="text" id="description" placeholder="Enter Book Description (Optional)">
+            <input type="text" id="category" placeholder="Enter Book Category">
+            <select id="availability">
+                <option value="Available">Available</option>
+                <option value="Borrowed">Borrowed</option>
+            </select>
             <button onclick="addBook()">Add Book</button>
             <button onclick="deleteBook()">Delete Book</button>
             <button onclick="editBook()">Edit Book</button>
             <button onclick="clearFields()">Clear Fields</button>
         </div>
+        
         <div class="search-container">
             <input type="text" id="search" placeholder="Search Book by Title">
             <button onclick="searchBook()">Search</button>
             <button onclick="viewAllBooks()">View All Books</button>
+            <button onclick="filterByCategory()">Filter by Category</button>
             <button onclick="sortBooks('title')">Sort by Title</button>
             <button onclick="sortBooks('author')">Sort by Author</button>
         </div>
+
+        <div class="borrow-return-container">
+            <input type="text" id="borrowTitle" placeholder="Enter Book Title to Borrow/Return">
+            <button onclick="borrowBook()">Borrow Book</button>
+            <button onclick="returnBook()">Return Book</button>
+        </div>
+
         <div class="book-list">
             <h2>📖 Books in Library</h2>
             <ul id="books">
-                <!-- Books will be dynamically added here -->
+                
             </ul>
         </div>
     </div>
+
     <script>
         async function addBook() {
             const title = document.getElementById('title').value;
             const author = document.getElementById('author').value;
             const description = document.getElementById('description').value;
+            const category = document.getElementById('category').value;
+            const availability = document.getElementById('availability').value;
 
-            if (!title || !author) {
-                alert("Please fill both title and author fields.");
+            if (!title || !author || !category) {
+                alert("Please fill out title, author, and category fields.");
                 return;
             }
 
             const response = await fetch("/add_book", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, author, description })
+                body: JSON.stringify({ title, author, description, category, availability })
             });
             const result = await response.json();
             alert(result.message || result.error);
             viewAllBooks();
         }
 
-        async function deleteBook() {
-            const title = document.getElementById('title').value;
+        async function borrowBook() {
+            const title = document.getElementById('borrowTitle').value;
+
             if (!title) {
-                alert("Please enter the title of the book to delete.");
+                alert("Please enter the title of the book to borrow.");
                 return;
             }
 
-            const response = await fetch("/delete_book", {
+            const response = await fetch("/borrow_book", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title })
@@ -70,25 +89,50 @@
             viewAllBooks();
         }
 
-        async function editBook() {
-            const title = document.getElementById('title').value;
-            const newAuthor = document.getElementById('author').value;
-            const newDescription = document.getElementById('description').value;
+        async function returnBook() {
+            const title = document.getElementById('borrowTitle').value;
 
-            if (!title || (!newAuthor && !newDescription)) {
-                alert("Please enter the title and at least one new detail to update.");
+            if (!title) {
+                alert("Please enter the title of the book to return.");
                 return;
             }
 
-            const response = await fetch("/edit_book", {
+            const response = await fetch("/return_book", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, newAuthor, newDescription })
+                body: JSON.stringify({ title })
             });
             const result = await response.json();
             alert(result.message || result.error);
             viewAllBooks();
         }
+
+        async function filterByCategory() {
+            const category = document.getElementById('category').value.toLowerCase();
+
+            if (!category) {
+                alert("Please enter a category to filter.");
+                return;
+            }
+
+            const response = await fetch("/books");
+            const books = await response.json();
+            const booksList = document.getElementById('books');
+            booksList.innerHTML = "";
+            const filteredBooks = books.filter(book => book.Category.toLowerCase() === category);
+
+            if (filteredBooks.length === 0) {
+                alert("No books found in this category.");
+            } else {
+                filteredBooks.forEach(book => {
+                    const li = document.createElement('li');
+                    li.textContent = `${book.Title} by ${book.Author} (${book.Category}) - ${book.Description || "No description"} [${book.Availability}]`;
+                    booksList.appendChild(li);
+                });
+            }
+        }
+
+      
 
         async function viewAllBooks() {
             const response = await fetch("/books");
@@ -97,58 +141,9 @@
             booksList.innerHTML = "";
             books.forEach(book => {
                 const li = document.createElement('li');
-                li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
+                li.textContent = `${book.Title} by ${book.Author} (${book.Category}) - ${book.Description || "No description"} [${book.Availability}]`;
                 booksList.appendChild(li);
             });
-        }
-
-        async function searchBook() {
-            const search = document.getElementById('search').value.toLowerCase();
-            if (!search) {
-                alert("Please enter a book title to search.");
-                return;
-            }
-
-            const response = await fetch("/books");
-            const books = await response.json();
-            const booksList = document.getElementById('books');
-            booksList.innerHTML = "";
-            const filteredBooks = books.filter(book => book.Title.toLowerCase().includes(search));
-            if (filteredBooks.length === 0) {
-                alert("No books found matching your search.");
-            } else {
-                filteredBooks.forEach(book => {
-                    const li = document.createElement('li');
-                    li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
-                    booksList.appendChild(li);
-                });
-            }
-        }
-
-        async function sortBooks(criteria) {
-            const response = await fetch("/books");
-            const books = await response.json();
-            const booksList = document.getElementById('books');
-            booksList.innerHTML = "";
-
-            const sortedBooks = books.sort((a, b) =>
-                criteria === "title"
-                    ? a.Title.localeCompare(b.Title)
-                    : a.Author.localeCompare(b.Author)
-            );
-
-            sortedBooks.forEach(book => {
-                const li = document.createElement('li');
-                li.textContent = `${book.Title} by ${book.Author} - ${book.Description || "No description"}`;
-                booksList.appendChild(li);
-            });
-        }
-
-        function clearFields() {
-            document.getElementById('title').value = "";
-            document.getElementById('author').value = "";
-            document.getElementById('description').value = "";
-            document.getElementById('search').value = "";
         }
 
         window.onload = viewAllBooks;
